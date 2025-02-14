@@ -1,0 +1,19 @@
+# Visual Studio
+
+.vs/
+
+# Build outputs
+bin/
+obj/
+Debug/
+Release/
+Resources/Test/
+
+# Pagkage dependencies
+*.pdb
+
+# Logs & database
+*.log
+*.bak
+*.mdf
+*.ldf

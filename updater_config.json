@@ -1,0 +1,11 @@
+{
+	"FtpServer": "iad1-shared-b8-15.dreamhost.com/cloud_backup_core",
+	"FtpUsername": "stelios_updater",
+	"FtpPassword": "02AMHB0%PC",
+	"RemoteUpdatePath": "updates",
+	"LocalAppPath": "C:\\Program Files\\CloudBackupCore",
+	"LocalUpdatePath": "C:\\Users\\paokf\\AppData\\Local\\Cloud_Backup_Core\\update",
+	"CurrentVersionFile": "version.txt",
+	"ExecutableName": "Cloud Backup Core.exe"
+	//ftp://stelios_updater@iad1-shared-b8-15.dreamhost.com/cloud_backup_core/updates/version.txt
+}

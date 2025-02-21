@@ -8,27 +8,40 @@ namespace CloudUpdater
         {
             try
             {
-                var config = Config.Load("updater_config.json"); // Ensure the JSON file is present in the output directory
-                string localVersionPath = Path.Combine(config.LocalAppPath, config.CurrentVersionFile);
-                string remoteVersionUrl = $"ftp://stelios_updater@{config.FtpServer}/{config.RemoteUpdatePath}/{config.CurrentVersionFile}";
-                //ftp://stelios_updater@iad1-shared-b8-15.dreamhost.com/cloud_backup_core/updates/version.txt  
+                // Ensure the JSON file is present in the output directory
+                var config = Config.Load(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Cloud_Backup_Core", "updater_config.json")); 
+                string localVersionPath = Path.Combine(config.LocalAppPath, config.CurrentVersionFile); 
+                string remoteVersionUrl = $"ftp://stelios_updater@{config.FtpServer}/{config.RemoteUpdatePath}/{config.CurrentVersionFile}"; 
+                //ftp://stelios_updater@iad1-shared-b8-15.dreamhost.com/cloud_backup_core/updates/version.txt 
 
                 string localVersion = File.Exists(localVersionPath) ? File.ReadAllText(localVersionPath).Trim() : "0.0.0";
                 string remoteVersion = DownloadVersionFile(remoteVersionUrl, config.FtpUsername, config.FtpPassword);
-
 
                 Console.WriteLine($"Local Version: {localVersion}");
                 Console.WriteLine($"Remote Version: {remoteVersion}");
 
                 if (string.Compare(remoteVersion, localVersion) > 0)
                 {
-                    Console.WriteLine($"Update available: {remoteVersion}");
-                    DownloadUpdate(config);
+#if DEBUG
+                    Console.WriteLine($"Update available: {remoteVersion}. Proceed? [y/n]");
+                    if (Console.ReadLine() == "y")
+                    {
+                        DownloadUpdate(config);
+                    }
+                    else
+                    {
+                        Console.WriteLine("Aborting.");
+                        return;
+                    }
+#else
+                  DownloadUpdate(config);
+#endif
                 }
                 else
                 {
                     Console.WriteLine("No updates found.");
                 }
+                File.WriteAllText(localVersionPath, remoteVersion);
             }
             catch (Exception ex)
             {
@@ -79,38 +92,30 @@ namespace CloudUpdater
                 }
 
                 Console.WriteLine("Download complete. Extracting update...");
+                try
+                {
+                    var process = System.Diagnostics.Process.GetProcessesByName(
+                        Path.GetFileNameWithoutExtension(config.ExecutableName)).FirstOrDefault();
 
-                System.IO.Compression.ZipFile.ExtractToDirectory(updateZip, config.LocalAppPath, true);
-                File.Delete(updateZip);
+                    process?.Kill(); // Kill the old process if running
+                    System.Threading.Thread.Sleep(2000); // Wait for app to close
 
-                Console.WriteLine("Update applied. Restarting application...");
-                RestartApplication(config);
+                    // Extract downloaded zip file to install path
+                    System.IO.Compression.ZipFile.ExtractToDirectory(updateZip, config.LocalAppPath, true);
+                    File.Delete(updateZip);
+
+                    // Restart application
+                    System.Diagnostics.Process.Start(Path.Combine(config.LocalAppPath, config.ExecutableName));
+                    Console.WriteLine("Application restarted.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error restarting application: {ex.Message}");
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error during update: {ex.Message}");
-            }
-        }
-
-        /// <summary>
-        /// Restarts the main application after applying updates.
-        /// </summary>
-        static void RestartApplication(Config config)
-        {
-            try
-            {
-                var process = System.Diagnostics.Process.GetProcessesByName(
-                    Path.GetFileNameWithoutExtension(config.ExecutableName)).FirstOrDefault();
-
-                process?.Kill(); // Kill the old process if running
-                System.Threading.Thread.Sleep(2000); // Wait for app to close
-
-                System.Diagnostics.Process.Start(Path.Combine(config.LocalAppPath, config.ExecutableName));
-                Console.WriteLine("Application restarted.");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error restarting application: {ex.Message}");
             }
         }
     }
